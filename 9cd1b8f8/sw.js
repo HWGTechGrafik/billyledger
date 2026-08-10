@@ -6,7 +6,7 @@
    Bei neuer Version unten CACHE hochzählen – der alte Cache wird dann
    automatisch verworfen.
    ===================================================================== */
-const CACHE = "billy-ledger-2.4.1";
+const CACHE = "billy-ledger-9cd1b8f8-2.5.0";
 
 // App-Gerüst + CDN-Bibliotheken (Versionen wie in der index.html!)
 const DATEIEN = [
@@ -38,7 +38,7 @@ self.addEventListener("install", (e) => {
 self.addEventListener("activate", (e) => {
   e.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)));
+    await Promise.all(keys.filter((k) => k.startsWith("billy-ledger-9cd1b8f8-") && k !== CACHE).map((k) => caches.delete(k)));
     await self.clients.claim();
   })());
 });
