@@ -6,7 +6,7 @@
    Bei neuer Version unten CACHE hochzählen – der alte Cache wird dann
    automatisch verworfen.
    ===================================================================== */
-const CACHE = "billy-ledger-02215062-2.6.1";
+const CACHE = "billy-ledger-02215062-2.6.3";
 
 // App-Gerüst + CDN-Bibliotheken (Versionen wie in der index.html!)
 const DATEIEN = [
