@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Billy Ledger App – Anmeldung</title>
+<!--
+  Rueckleitungsseite fuer die OneDrive-Anmeldung (Branding HWG.Tech).
+
+  Microsoft springt nach dem Login hierher zurueck. Diese Seite tut nichts
+  weiter, als den Autorisierungscode an das Fenster zurueckzugeben, aus dem
+  die Anmeldung gestartet wurde - und schliesst sich dann selbst.
+
+  WARUM EINE GEMEINSAME SEITE: Sie liegt eine Ebene UEBER den Kundenordnern
+  (.../billyledger/oauth.html), also fuer alle Kunden dieselbe Adresse. Damit
+  genuegt EIN Eintrag in der Azure-App-Registrierung - auch fuer jeden
+  kuenftigen Kunden. Laege sie in jedem Kundenordner, muesste jede neue
+  Kunden-URL dort nachgetragen werden.
+
+  SICHERHEIT: Der Code geht per postMessage ausschliesslich an die eigene
+  Herkunft (origin) zurueck - Rueckleitungsseite und App liegen immer auf
+  derselben. Ohne den code_verifier, der nur im aufrufenden Fenster liegt,
+  ist der Code ohnehin wertlos (PKCE).
+-->
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    margin: 0; min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: #f5f1ea; color: #2a2521;
+  }
+  @media (prefers-color-scheme: dark) { body { background: #17150f; color: #e8e2d6; } }
+  .karte { text-align: center; padding: 2rem 1.5rem; max-width: 26rem; }
+  .marke { font-weight: 700; color: #18aa4c; margin-bottom: .75rem; }
+  .text { font-size: .95rem; line-height: 1.5; }
+  .grau { opacity: .7; font-size: .85rem; margin-top: 1rem; }
+</style>
+</head>
+<body>
+<div class="karte">
+  <div class="marke">Billy Ledger App</div>
+  <div class="text" id="text">Anmeldung wird abgeschlossen …</div>
+  <div class="grau" id="hinweis"></div>
+</div>
+<script>
+(function () {
+  var p = new URLSearchParams(location.search);
+  var nachricht = {
+    art: "billyledger-oauth",
+    code: p.get("code"),
+    state: p.get("state"),
+    error: p.get("error"),
+    error_description: p.get("error_description")
+  };
+  var ziel = window.opener;
+  if (ziel && !ziel.closed) {
+    try {
+      // Nur an die eigene Herkunft - nie an "*".
+      ziel.postMessage(nachricht, location.origin);
+      document.getElementById("text").textContent = nachricht.error
+        ? "Die Anmeldung wurde abgebrochen."
+        : "Fertig – dieses Fenster schließt sich gleich.";
+      setTimeout(function () { try { window.close(); } catch (e) {} }, 800);
+      return;
+    } catch (e) { /* faellt unten in den Hinweis */ }
+  }
+  document.getElementById("text").textContent = nachricht.error
+    ? "Die Anmeldung ist fehlgeschlagen."
+    : "Anmeldung abgeschlossen.";
+  document.getElementById("hinweis").textContent = nachricht.error
+    ? (nachricht.error_description || nachricht.error)
+    : "Dieses Fenster kann geschlossen werden. Bitte kehren Sie zur Billy Ledger App zurück.";
+})();
+</script>
+</body>
+</html>
