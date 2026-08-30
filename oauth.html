@@ -6,22 +6,35 @@
 <meta name="robots" content="noindex, nofollow">
 <title>Billy Ledger App – Anmeldung</title>
 <!--
-  Rueckleitungsseite fuer die OneDrive-Anmeldung (Branding HWG.Tech).
+  Rueckleitungsseite fuer die Cloud-Anmeldung (Branding HWG.Tech).
 
-  Microsoft springt nach dem Login hierher zurueck. Diese Seite tut nichts
-  weiter, als den Autorisierungscode an das Fenster zurueckzugeben, aus dem
-  die Anmeldung gestartet wurde - und schliesst sich dann selbst.
+  Der Anbieter (Dropbox, spaeter ggf. andere) springt nach dem Login hierher
+  zurueck. Diese Seite gibt den Autorisierungscode an die App weiter - auf
+  einem von zwei Wegen:
+
+    1. PC/Notebook: Die App hat ein Anmeldefenster geoeffnet. Der Code geht
+       per postMessage an das oeffnende Fenster zurueck, danach schliesst
+       sich dieses Fenster selbst.
+
+    2. Handy / installierte App (seit 2.7.4): Dort gibt es kein zweites
+       Fenster - die App hat sich selbst hierher umgeleitet. Dann schickt
+       diese Seite den Browser zur App zurueck und haengt das Ergebnis als
+       Fragment an ("#billyledger=..."). Ein Fragment bleibt im Browser und
+       geht nie an einen Server. Wohin zurueck, steht im "state": die App
+       haengt dort ihren eigenen Pfad an, denn diese Seite liegt eine Ebene
+       UEBER den Kundenordnern und wuesste es sonst nicht.
 
   WARUM EINE GEMEINSAME SEITE: Sie liegt eine Ebene UEBER den Kundenordnern
   (.../billyledger/oauth.html), also fuer alle Kunden dieselbe Adresse. Damit
-  genuegt EIN Eintrag in der Azure-App-Registrierung - auch fuer jeden
+  genuegt EIN Eintrag in der Entwicklerkonsole des Anbieters - auch fuer jeden
   kuenftigen Kunden. Laege sie in jedem Kundenordner, muesste jede neue
   Kunden-URL dort nachgetragen werden.
 
-  SICHERHEIT: Der Code geht per postMessage ausschliesslich an die eigene
-  Herkunft (origin) zurueck - Rueckleitungsseite und App liegen immer auf
-  derselben. Ohne den code_verifier, der nur im aufrufenden Fenster liegt,
-  ist der Code ohnehin wertlos (PKCE).
+  SICHERHEIT: Der Code verlaesst nie die eigene Herkunft (origin) -
+  postMessage geht ausschliesslich dorthin, und der Rueckweg fuehrt nur in
+  einen Ordner UNTERHALB dieser Seite (geprueft, kein "..", kein zweiter
+  Host). Ohne den code_verifier, der nur im Browser der App liegt, ist der
+  Code ohnehin wertlos (PKCE).
 -->
 <style>
   :root { color-scheme: light dark; }
@@ -54,22 +67,62 @@
     error: p.get("error"),
     error_description: p.get("error_description")
   };
+  var textEl = document.getElementById("text");
+  var hinweisEl = document.getElementById("hinweis");
+
+  /* Der Pfad der App steckt hinter dem ersten Punkt im "state", base64url
+     kodiert. Zurueck geht es nur in einen Ordner unterhalb DIESER Seite -
+     alles andere wird verworfen. */
+  function pfadAusState(s) {
+    if (!s) return null;
+    var i = s.indexOf(".");
+    if (i < 0) return null;
+    var b = s.slice(i + 1).replace(/-/g, "+").replace(/_/g, "/");
+    while (b.length % 4) b += "=";
+    var pfad;
+    try {
+      var roh = atob(b);
+      var arr = new Uint8Array(roh.length);
+      for (var k = 0; k < roh.length; k++) arr[k] = roh.charCodeAt(k);
+      pfad = new TextDecoder().decode(arr);
+    } catch (e) { return null; }
+    var basis = location.pathname.replace(/[^/]*$/, "");
+    if (!pfad || pfad.charAt(0) !== "/") return null;
+    if (pfad.indexOf("//") === 0 || pfad.indexOf("..") >= 0 || pfad.indexOf("\\") >= 0) return null;
+    if (pfad.indexOf(basis) !== 0) return null;
+    return pfad;
+  }
+
+  // Weg 1: Es gibt ein oeffnendes Fenster (PC).
   var ziel = window.opener;
   if (ziel && !ziel.closed) {
     try {
       // Nur an die eigene Herkunft - nie an "*".
       ziel.postMessage(nachricht, location.origin);
-      document.getElementById("text").textContent = nachricht.error
+      textEl.textContent = nachricht.error
         ? "Die Anmeldung wurde abgebrochen."
         : "Fertig – dieses Fenster schließt sich gleich.";
       setTimeout(function () { try { window.close(); } catch (e) {} }, 800);
       return;
-    } catch (e) { /* faellt unten in den Hinweis */ }
+    } catch (e) { /* faellt in Weg 2 bzw. den Hinweis unten */ }
   }
-  document.getElementById("text").textContent = nachricht.error
+
+  // Weg 2: Zurueck in die App (Handy, installierte App).
+  var pfad = pfadAusState(nachricht.state);
+  if (pfad) {
+    var rueck = new URLSearchParams();
+    ["code", "state", "error", "error_description"].forEach(function (k) {
+      if (nachricht[k]) rueck.set(k, nachricht[k]);
+    });
+    textEl.textContent = "Anmeldung abgeschlossen – zurück zur App …";
+    location.replace(location.origin + pfad + "#billyledger=" + encodeURIComponent(rueck.toString()));
+    return;
+  }
+
+  textEl.textContent = nachricht.error
     ? "Die Anmeldung ist fehlgeschlagen."
     : "Anmeldung abgeschlossen.";
-  document.getElementById("hinweis").textContent = nachricht.error
+  hinweisEl.textContent = nachricht.error
     ? (nachricht.error_description || nachricht.error)
     : "Dieses Fenster kann geschlossen werden. Bitte kehren Sie zur Billy Ledger App zurück.";
 })();
