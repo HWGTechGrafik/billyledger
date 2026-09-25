@@ -6,7 +6,7 @@
    Bei neuer Version unten CACHE hochzählen – der alte Cache wird dann
    automatisch verworfen.
    ===================================================================== */
-const CACHE = "billy-ledger-9cd1b8f8-2.7.6";
+const CACHE = "billy-ledger-9cd1b8f8-2.8.1";
 
 // App-Gerüst + CDN-Bibliotheken (Versionen wie in der index.html!)
 const DATEIEN = [
@@ -21,6 +21,7 @@ const DATEIEN = [
   "https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js",
   "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js",
   "https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js",
+  "https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js",
   "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"
 ];
 // werksdaten.js wird bewusst NICHT vorab geladen (optional/kundenspezifisch),
